@@ -35,4 +35,5 @@ jobs:
                 PYTHONPATH: ${{ github.workspace }}/agent_mac  # 解决你在 main.py 里 import src 的报错问题
               run: |
                 cd agent_mac
-                timeout --preserve-status 10s python3 main.py
+                # 使用 perl 模拟 timeout 10秒 动作
+                perl -e 'alarm shift; exec @ARGV' 10 python3 main.py
