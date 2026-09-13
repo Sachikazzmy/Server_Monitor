@@ -1,0 +1,37 @@
+
+
+
+
+name: Test For Mac_Agent
+
+on: 
+    push:
+        branches:
+        - main
+
+jobs:
+    build_test:
+        name: 项目构建与测试
+        runs-on: macos-latest
+
+        steps:
+            - name: 拉取代码
+              uses: actions/checkout@v4
+
+            - name: 安装python
+              uses: actions/setup-python@v5
+              with: 
+                python-version: '3.9.6'
+
+            - name: 启用虚拟环境
+              run: |
+                python3 -m venv .venv
+                source .venv/bin/activate
+
+            - name: 安装依赖
+              run: |
+                python3 -m pip install --upgrade pip
+                pip3 install -r requirements.txt
+
+            - name: 运行测试
+              run: timeout --preserve-status 10s python3 main.py
