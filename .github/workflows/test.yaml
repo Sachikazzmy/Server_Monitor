@@ -26,12 +26,12 @@ jobs:
             - name: 启用虚拟环境
               run: |
                 python3 -m venv .venv
-                source .venv/bin/activate
+                source agent_mac/.venv/bin/activate
 
             - name: 安装依赖
               run: |
                 python3 -m pip install --upgrade pip
-                pip3 install -r requirements.txt
+                pip3 install -r agent_mac/requirements.txt
 
             - name: 运行测试
-              run: timeout --preserve-status 10s python3 main.py
+              run: timeout --preserve-status 10s agent_mac/python3 main.py
