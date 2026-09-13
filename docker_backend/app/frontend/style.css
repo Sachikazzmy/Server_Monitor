@@ -1,0 +1,99 @@
+/* Server Monitor 图表页样式：深色面板 + 三线表（顶线 / 栏目线 / 底线，无竖线） */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  max-width: 1320px;
+  padding: 18px 20px 40px;
+  background: #0d121c;
+  color: #dfe7f2;
+  font: 14px/1.5 -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+h1 { font-size: 17px; font-weight: 600; margin: 0; }
+h1 .sub { margin-left: 8px; font-size: 12px; font-weight: 400; color: #8b98ab; }
+h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #aab6c8; }
+h2 .unit { margin-left: 6px; font-size: 11px; font-weight: 400; color: #6d7a8e; }
+
+/* ---- 顶栏 ---- */
+
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+.meta { display: flex; align-items: center; gap: 8px; color: #8b98ab; font-size: 12px; }
+.meta .sep { color: #3a465c; }
+.meta #agent-id { color: #cfe0f0; font-family: ui-monospace, Menlo, monospace; }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #35d07f;
+  animation: pulse 2s infinite;
+}
+
+.dot.off { background: #e5534b; animation: none; }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(53, 208, 127, .55); }
+  70% { box-shadow: 0 0 0 8px rgba(53, 208, 127, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(53, 208, 127, 0); }
+}
+
+/* ---- 布局与卡片 ---- */
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+
+.card {
+  background: #141a26;
+  border: 1px solid #232c3d;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.chart { height: 250px; }
+
+/* ---- 三线表：表头顶线 / 栏目线 / 表尾底线，行与行之间不加竖线 ---- */
+
+.table-wrap { max-height: 360px; overflow: auto; }
+
+.three-line {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 2px solid #46536b;
+  border-bottom: 2px solid #46536b;
+}
+
+.three-line thead th {
+  position: sticky;
+  top: 0;
+  padding: 8px 12px;
+  background: #141a26;
+  border-bottom: 1px solid #46536b;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b98ab;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.three-line td { padding: 8px 12px; text-align: left; white-space: nowrap; }
+
+.three-line tbody tr:hover { background: rgba(108, 140, 255, .07); }
+
+.three-line .num { text-align: right; font-variant-numeric: tabular-nums; }
+.three-line .cmd { font-family: ui-monospace, Menlo, monospace; color: #cfe0f0; }
+
+/* 新进程行的入场动画：轻柔淡入并上浮 */
+tr.row-new { animation: row-in .45s ease; }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1100px) {
+  .grid { grid-template-columns: 1fr; }
+}

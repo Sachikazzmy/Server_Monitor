@@ -1,10 +1,12 @@
 # Server Monitor — 容器后端架构与交接文档（v0.1）
 
 > 交付对象：后续接手后端开发的人 / Agent。本文档自包含，不依赖其他上下文。
-> 代码位置：`docker_backend/`，运行方式：项目根目录执行 `python udp_server.py`（venv：`.venv/`，Python 3.9.6，已装 fastapi/pydantic/uvicorn）。
+> 代码位置：`docker_backend/`。
+> 运行方式（两个独立进程，均在本目录执行；venv：`.venv/`，Python 3.9.6，已装 fastapi/pydantic/uvicorn）：
+> ① 接收器 `python udp_server.py`；② 展示面 `.venv/bin/uvicorn app.main:app --port 8000`，浏览器访问 `/charts`。
 > 测试：`.venv/bin/python -m unittest discover -s tests -v`（标准库 unittest，13 例，无需额外安装）。
 > 上游数据源：`../agent_mac/docs/ARCHITECTURE.md`（协议 v2 的权威定义在该文档第 4 节）。
-> **当前状态：阶段 1（UDP 接收 ➡️ 校验 ➡️ JSONL 存储）已完成并实测联调通过**；阶段 2（FastAPI 展示面）未开工。
+> **当前状态：阶段 1（UDP 接收 ➡️ 校验 ➡️ JSONL 存储）与阶段 2 图表展示页均已完成并实测联调通过**；阶段 3（控制面等增强）未开工。
 > Dockerfile / GitHub Actions 由项目负责人自行维护，本文不覆盖。
 
 ---
@@ -101,6 +103,8 @@ python udp_server.py
 | `received_at` | 后端补 | 后端收到的时间（UTC）；与 `ts` 相减 ≈ 传输延迟 |
 | `sender` | 后端补 | 发送方 `IP:端口`（UDP 无连接，每次可能变，仅参考） |
 
+> **内存字段语义（2026-09 修正）**：`total_mb` 是真实物理内存（agent 经 `sysctl hw.memsize` 查询），`used_mb = total_mb − unused`，M 粒度。早期版本照抄 top 的 used，但 top 的 PhysMem 行里 used 只有 G 粒度（如 "15G used"），会让图表里「已用」变成一条恒定平线。上行示例是修正前的真实记录，仅作行格式参考；详见 agent 文档第 4 节约定。
+
 ### 3.3 常用查询
 
 ```bash
@@ -159,34 +163,30 @@ services:
 
 ## 6. 路线图
 
-### 阶段 2：FastAPI 展示面（下一步）
+### 阶段 2：FastAPI 展示面（✅ 2026-09 图表页已完成）
 
-**线程模型**——接收循环与 HTTP 服务同进程、双线程，与 agent 端阶段 2 的模式对称：
+**进程模型**——接收与展示是两个独立进程，仍只通过 `data/*.jsonl` 文件交换数据（无需锁）。早期设想的「同进程双线程」暂未采用：两个进程各自独立启停、互不影响，更简单也够用；`signal.signal` 的主线程限制随之消失。
 
 ```
-main.py（组装入口）
- ├─ 主线程：uvicorn 跑 FastAPI        HTTP API + 前端静态页
- └─ daemon 线程：udp_server 的主循环   改造成可被线程调用的函数后启动
-      └─ 两者只通过 data/*.jsonl 文件交换数据，不需要锁
+终端 A：python udp_server.py                接收 → 校验 → 落盘（阶段 1，未改动）
+终端 B：.venv/bin/uvicorn app.main:app      HTTP API + 图表静态页（阶段 2）
 ```
 
-**两个已知坑，提前写明**：
+**图表页**（浏览器访问 `http://127.0.0.1:8000/charts`，`/` 自动跳转过去）：
 
-1. `signal.signal` 只能在主线程调用。集成时要把 `main()` 里的信号注册拆出去（信号归主线程/uvicorn 管），或给 `udp_server` 加一个「注册不注册信号」的开关参数。当前单文件阶段 1 不受影响。
-2. 现有 `app/main.py` 是 FastAPI 的 items 练手代码，与数据面无关，集成时可删除或改写为 `healthz`。
+- 三张平滑曲线卡：CPU 占用率（us/sy/id/wa）、内存（已用/可用/联动/压缩）、系统负载（1/5/15 分钟）；
+- 进程三线表：最新一包的进程按 CPU 排序，CPU 列带占比底纹，新出现的进程行有淡入动画；
+- 数据流：首屏不带 offset 一次拉齐今日已落盘数据成型图表 → 每 2 秒携带 offset 增量轮询 → 新点直接 push 进已成型的曲线，由 ECharts 补间滑入（不重建图表）；每条曲线保留 240 点滑动窗口，满了旧点滑出；跨天文件滚动时接口返回 `rolled_over=true` 并附全量数据，前端整体重置重新成型。
 
-**路由建议（前端展示所需的最小集合）**：
+**实际接口**（比早期设想精简：一个数据接口同时覆盖全量与增量）：
 
 | Method | Path | 作用 | 实现要点 |
 |---|---|---|---|
-| GET | `/api/agents` | 列出出现过的 agent 与最后活跃时间 | 扫 `data/*.jsonl` 的 `agent_id`；量大后改为接收器顺手维护内存表 |
-| GET | `/api/metrics?agent_id=&date=YYYYMMDD` | 某 agent 某天的指标序列 | 逐行读对应 JSONL，按 `received_at` 排序返回 |
-| GET | `/api/metrics/latest` | 最新一包（仪表盘当前值） | 优先做内存缓存（接收器存最近 N 条），避免每秒读全文件 |
+| GET | `/api/metrics/today?offset=N` | 今日指标：不带 offset 全量返回；带 offset 只返回新增行 | 按字节偏移读 JSONL，只统计完整行（半行留给下一轮）；`rolled_over` 标记文件滚动 |
+| GET | `/charts`（`/` 跳转、`/static/*` 资源） | 图表页与静态资源 | 页面本体在 `app/frontend/`；ECharts 已本地化到 `app/frontend/vendor/`，离线可用 |
 | GET | `/healthz` | 存活探针 | 无鉴权，200 即可 |
 
-前端展示建议从简：FastAPI 返回 JSON，页面用 Chart.js 画 `cpu.us/sy/id` 和 `memory.used_mb` 的时间曲线，数据源就是上面两个 GET。
-
-**文件变大的应对**（每 3 秒一包 ≈ 每天 2.9 万行，单文件几 MB，短期无压力）：真正吃紧时优先做内存缓存 + 只读文件尾部，不必急着上数据库。
+**文件变大的应对**（每 3 秒一包 ≈ 每天 2.9 万行，单文件几 MB，短期无压力）：增量轮询本身就只读新增字节，天然是「只读尾部」方案；单 agent 场景暂不需要内存缓存与 `/api/metrics/latest`，将来多 agent 时再加。
 
 ### 阶段 3：可选增强（按需）
 
@@ -213,8 +213,16 @@ docker_backend/
 ├── Dockerfile                 # 由项目负责人维护（当前为空）
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                # FastAPI items 练手代码（阶段 2 集成时处理）
-│   └── api/__init__.py
+│   ├── main.py                # FastAPI 组装入口：挂载 API 路由 + /charts 图表页 + /static
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── reader.py          # 今日 JSONL 读取器：offset=0 全量 / offset>0 增量（按字节偏移）
+│   │   └── routes.py          # GET /api/metrics/today（首屏全量与轮询增量共用）
+│   └── frontend/
+│       ├── index.html         # 图表页骨架：三张曲线卡 + 进程三线表
+│       ├── style.css          # 深色面板样式 + 三线表（顶线 / 栏目线 / 底线）
+│       ├── app.js             # 首屏全量成型 + 2 秒增量轮询 + 新点滑入动画
+│       └── vendor/echarts.min.js  # ECharts 5.5.1 本地化（离线可用）
 ├── tests/
 │   ├── __init__.py
 │   ├── test.py                # 空占位文件

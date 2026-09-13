@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Server Monitor · 实时图表</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Server Monitor <span class="sub">top 实时曲线</span></h1>
+    <div class="meta">
+      <span id="clock">--:--:--</span>
+      <span class="sep">·</span>
+      <span id="agent-id">等待数据</span>
+      <span class="sep">·</span>
+      <span id="last-packet">—</span>
+      <span id="live-dot" class="dot"></span>
+      <span id="live-text">连接中</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>CPU 占用率 <span class="unit">%</span></h2>
+      <div id="chart-cpu" class="chart"></div>
+    </section>
+    <section class="card">
+      <h2>内存用量 <span class="unit">MB</span></h2>
+      <div id="chart-memory" class="chart"></div>
+    </section>
+    <section class="card">
+      <h2>系统负载 <span class="unit">load average</span></h2>
+      <div id="chart-load" class="chart"></div>
+    </section>
+  </main>
+
+  <section class="card">
+    <h2>TOP 进程 <span class="unit">最新一包 · 按 CPU 排序</span></h2>
+    <div class="table-wrap">
+      <table class="three-line">
+        <thead>
+          <tr><th class="num">PID</th><th>命令</th><th class="num">CPU %</th><th class="num">内存 MB</th></tr>
+        </thead>
+        <tbody id="process-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="/static/vendor/echarts.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
