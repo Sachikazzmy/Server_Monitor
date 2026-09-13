@@ -1,0 +1,7 @@
+.venv
+__pycache__/
+*.pyc
+
+# 运行产物：指标数据与运行日志（不入库）
+data/
+logs/
