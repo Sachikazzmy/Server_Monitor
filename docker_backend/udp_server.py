@@ -29,6 +29,9 @@ import socket
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 
+import threading
+import uvicorn
+
 
 # ============================================================
 # 常量
@@ -208,6 +211,21 @@ def handle_datagram(data, addr, data_dir, seq_stats, counters):
     counters["stored"] += 1
 
 
+
+
+# ============================================================
+# 集成FastAPI的main.py app
+# ============================================================
+
+def run_fastapi():
+    # 注意：因为 main.py 在 app 目录下，所以路径写成 "app.main:app"
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000)
+
+
+
+
+
+
 # ============================================================
 # 主流程
 # ============================================================
@@ -267,4 +285,10 @@ def main():
 
 
 if __name__ == "__main__":
+
+     # 1. 启动 FastAPI 线程
+    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+    fastapi_thread.start()
+
+
     main()
