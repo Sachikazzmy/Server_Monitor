@@ -3,51 +3,128 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Server Monitor · 实时图表</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <meta name="color-scheme" content="dark">
+  <title>SERVER·MONITOR — realtime telemetry</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0d11'/%3E%3Cpath d='M1 11 L4 11 L6 5 L9 13 L11 8 L15 8' stroke='%23e8a33d' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/layout.css">
+  <link rel="stylesheet" href="/static/css/focus.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1>Server Monitor <span class="sub">top 实时曲线</span></h1>
-    <div class="meta">
-      <span id="clock">--:--:--</span>
-      <span class="sep">·</span>
-      <span id="agent-id">等待数据</span>
-      <span class="sep">·</span>
-      <span id="last-packet">—</span>
-      <span id="live-dot" class="dot"></span>
-      <span id="live-text">连接中</span>
-    </div>
-  </header>
+  <div class="page">
 
-  <main class="grid">
-    <section class="card">
-      <h2>CPU 占用率 <span class="unit">%</span></h2>
-      <div id="chart-cpu" class="chart"></div>
-    </section>
-    <section class="card">
-      <h2>内存用量 <span class="unit">MB</span></h2>
-      <div id="chart-memory" class="chart"></div>
-    </section>
-    <section class="card">
-      <h2>系统负载 <span class="unit">load average</span></h2>
-      <div id="chart-load" class="chart"></div>
-    </section>
-  </main>
+    <header class="topbar">
+      <div class="brand">
+        <h1>SERVER<span>·</span>MONITOR</h1>
+        <p>Realtime system telemetry</p>
+      </div>
+      <div class="top-meta">
+        <div class="tm-cell"><span>Agent</span><b id="hd-agent" class="mono">—</b></div>
+        <div class="tm-cell"><span>Local time</span><b id="hd-clock" class="mono hot">--:--:--</b></div>
+        <div class="tm-cell"><span>UTC</span><b id="hd-utc" class="mono">--:--:--</b></div>
+        <button class="live-pill" id="hd-live" type="button" aria-label="connection status">
+          <i class="dot"></i><b id="hd-live-text">CONNECTING</b>
+        </button>
+      </div>
+    </header>
 
-  <section class="card">
-    <h2>TOP 进程 <span class="unit">最新一包 · 按 CPU 排序</span></h2>
-    <div class="table-wrap">
-      <table class="three-line">
-        <thead>
-          <tr><th class="num">PID</th><th>命令</th><th class="num">CPU %</th><th class="num">内存 MB</th></tr>
-        </thead>
-        <tbody id="process-body"></tbody>
-      </table>
-    </div>
-  </section>
+    <!-- 生命体征条：首屏一眼读出系统状态 -->
+    <section class="vitals" aria-label="System vitals">
+      <button class="vital" data-metric="cpu" type="button" style="--acc:var(--c-cpu-us)">
+        <span class="vital-label"><i></i>CPU · Busy</span>
+        <span class="vital-value"><b id="vt-cpu" class="mono">--</b><small>%</small></span>
+        <span class="vital-sub"><em id="vt-cpu-state">—</em><span class="mono" id="vt-cpu-delta"></span></span>
+      </button>
+      <button class="vital" data-metric="memory" type="button" style="--acc:var(--c-mem-used)">
+        <span class="vital-label"><i></i>Memory · Used</span>
+        <span class="vital-value"><b id="vt-mem" class="mono">--</b><small id="vt-mem-total">/ --</small></span>
+        <span class="vital-sub"><span class="membar"><i id="vt-mem-bar"></i></span><em id="vt-mem-state">—</em></span>
+      </button>
+      <button class="vital" data-metric="load" type="button" style="--acc:var(--c-load-l5)">
+        <span class="vital-label"><i></i>Load · 1 min</span>
+        <span class="vital-value"><b id="vt-load" class="mono">--</b></span>
+        <span class="vital-sub"><span class="mono" id="vt-load-rest">5m -- · 15m --</span><em id="vt-load-trend"></em></span>
+      </button>
+      <div class="vital" style="--acc:var(--c-ok)">
+        <span class="vital-label"><i></i>Telemetry</span>
+        <span class="vital-value"><b id="vt-seq" class="mono">0</b><small>packets</small></span>
+        <span class="vital-sub"><span class="mono" id="vt-cadence">— s cadence</span><em class="mono" id="vt-age"></em></span>
+      </div>
+    </section>
 
-  <script src="/static/vendor/echarts.min.js"></script>
-  <script src="/static/app.js"></script>
+    <!-- 图表区：CPU 主位，Memory / Load 侧列。点击任意图表进入 Focus -->
+    <main class="charts">
+      <section class="panel chart-panel" id="panel-cpu" data-metric="cpu" aria-label="CPU chart, click to focus">
+        <header class="panel-hd" style="--tick:var(--c-cpu-us)">
+          <i class="tick"></i>
+          <h2>CPU <small>UTILIZATION · %</small></h2>
+          <span class="hd-meta" id="meta-cpu"></span>
+        </header>
+        <div class="chart-wrap" id="wrap-cpu">
+          <canvas id="canvas-cpu"></canvas>
+          <div class="chart-tip mono" id="tip-cpu"></div>
+        </div>
+        <footer class="readout" id="readout-cpu"></footer>
+      </section>
+
+      <div class="side">
+        <section class="panel chart-panel" id="panel-memory" data-metric="memory" aria-label="Memory chart, click to focus">
+          <header class="panel-hd" style="--tick:var(--c-mem-used)">
+            <i class="tick"></i>
+            <h2>MEMORY <small>PHYSICAL · MB</small></h2>
+            <span class="hd-meta" id="meta-memory"></span>
+          </header>
+          <div class="chart-wrap" id="wrap-memory">
+            <canvas id="canvas-memory"></canvas>
+            <div class="chart-tip mono" id="tip-memory"></div>
+          </div>
+          <footer class="readout" id="readout-memory"></footer>
+        </section>
+
+        <section class="panel chart-panel" id="panel-load" data-metric="load" aria-label="Load average chart, click to focus">
+          <header class="panel-hd" style="--tick:var(--c-load-l5)">
+            <i class="tick"></i>
+            <h2>LOAD <small>AVERAGE</small></h2>
+            <span class="hd-meta" id="meta-load"></span>
+          </header>
+          <div class="chart-wrap" id="wrap-load">
+            <canvas id="canvas-load"></canvas>
+            <div class="chart-tip mono" id="tip-load"></div>
+          </div>
+          <footer class="readout" id="readout-load"></footer>
+        </section>
+      </div>
+    </main>
+
+    <!-- Top 进程 -->
+    <section class="panel proc-panel" aria-label="Top processes">
+      <header class="panel-hd" style="--tick:var(--t-faint)">
+        <i class="tick"></i>
+        <h2>TOP PROCESSES <small>BY CPU</small></h2>
+        <span class="hd-meta" id="proc-meta">waiting for data</span>
+      </header>
+      <div class="table-wrap">
+        <table class="proc-table">
+          <thead>
+            <tr><th class="num">PID</th><th>Command</th><th class="num" style="width:130px">CPU %</th><th class="num">MEM MB</th></tr>
+          </thead>
+          <tbody id="proc-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="page-ft">
+      <span>POLLED EVERY 2.0S · SOURCE /API/METRICS/TODAY</span>
+      <span>CLICK A CHART TO FOCUS · ESC TO RETURN</span>
+    </footer>
+
+  </div>
+
+  <!-- Focus View 挂载点（focus.js 动态构建；初始必须隐藏，否则空面板会盖住整页） -->
+  <div id="focus-root" hidden></div>
+
+  <noscript>Server Monitor 需要启用 JavaScript 才能展示实时图表。</noscript>
+  <script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

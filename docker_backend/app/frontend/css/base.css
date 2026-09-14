@@ -1,0 +1,74 @@
+/* ============================================================
+ * base.css — 基础Reset、页面基底（点阵网格 + 晕影 + 噪点）、通用工具类
+ * 基底完全静态：所有"生命感"都来自图表里的真实数据，而不是背景动画。
+ * ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--t-hi);
+  font: 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 点阵网格 + 顶部冷色微光：极淡，只是给面板一个可感知的"底" */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(1100px 480px at 50% -8%, rgba(122, 152, 180, 0.05), transparent 65%),
+    radial-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1.4px);
+  background-size: auto, 26px 26px;
+  pointer-events: none;
+}
+
+/* 细颗粒噪点：消除大面积纯色的"塑料感"，静态、不可交互 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.022;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+::selection { background: rgba(232, 163, 61, 0.28); }
+
+/* 细滚动条：贴色 */
+* { scrollbar-width: thin; scrollbar-color: #29323d transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #29323d; border-radius: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+h1, h2, h3, p { margin: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, .vital:focus-visible { outline: 1px solid var(--c-cpu-us); outline-offset: 2px; }
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* 仪表风格的微型标签：小号、全大写、宽字距 */
+.micro {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-low);
+}
+
+/* 状态词着色 */
+.st-ok { color: var(--c-ok); }
+.st-warn { color: var(--c-warn); }
+.st-crit { color: var(--c-crit); }
+.st-idle { color: var(--t-low); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

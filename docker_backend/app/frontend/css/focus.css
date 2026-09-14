@@ -1,0 +1,282 @@
+/* ============================================================
+ * focus.css — 图表 Focus View
+ *
+ * 交互模型：点击 Dashboard 中的图表 → 该图表"从原位展开"为全屏 Focus；
+ * 关闭时收缩回原位（FLIP 变换）。遮罩纯色加深，不用毛玻璃。
+ * ============================================================ */
+
+.focus-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.focus-root[hidden] { display: none; }
+
+.focus-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 9, 0.82);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.focus-root.open .focus-scrim { opacity: 1; }
+
+.focus-panel {
+  position: absolute;
+  inset: 26px 34px;
+  display: flex;
+  flex-direction: column;
+  background: #0d1116;
+  border: 1px solid #202a35;
+  border-radius: 10px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.focus-panel.anim { transition: transform 0.44s cubic-bezier(0.22, 0.86, 0.24, 1); }
+
+/* ---- 头部 ---- */
+
+.focus-hd {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px 22px 8px;
+}
+
+.focus-hd .tick {
+  width: 4px;
+  height: 30px;
+  border-radius: 1px;
+  background: var(--tick, var(--t-faint));
+  flex: none;
+}
+
+.focus-title h2 {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.focus-title span {
+  display: block;
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--t-faint);
+}
+
+.focus-current {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.focus-current b {
+  font-family: var(--mono);
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-current small {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--t-low);
+}
+
+.focus-current em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  min-width: 86px;
+  text-align: right;
+  color: var(--t-low);
+}
+
+.focus-close {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 22px;
+  padding: 7px 11px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-ctl);
+  background: var(--panel-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--t-mid);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.focus-close:hover { border-color: #3a4655; color: var(--t-hi); }
+.focus-close span { font-size: 8.5px; letter-spacing: 0.14em; color: var(--t-faint); }
+
+/* ---- 统计行：极值 + 系列开关 ---- */
+
+.focus-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+  padding: 10px 22px 12px;
+}
+
+.fs-block span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--t-faint);
+}
+
+.fs-block b {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-mid);
+}
+
+.fs-chips {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-ctl);
+  background: var(--panel-2);
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.chip:hover { border-color: #3a4655; }
+
+.chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--c);
+  flex: none;
+}
+
+.chip span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--t-low);
+}
+
+.chip b {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-mid);
+}
+
+.chip[data-off] { opacity: 0.38; }
+.chip[data-off] i { background: transparent; box-shadow: inset 0 0 0 1px var(--c); }
+
+/* ---- 构成条：CPU/MEM 当前值按语义色分段的 100% 条 ---- */
+
+.focus-comp {
+  margin: 0 22px 10px;
+}
+
+.comp-bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #161c24;
+}
+
+.comp-bar i {
+  min-width: 0;
+  border-radius: 0;
+  transition: width 0.6s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+
+.comp-cap {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--t-faint);
+}
+
+/* ---- 大图表 ---- */
+
+.focus-chart-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 14px;
+}
+
+.focus-chart-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: pan-y;
+}
+
+/* ---- 底注 ---- */
+
+.focus-ft {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 22px 14px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--t-faint);
+}
+
+/* ---- 响应式 ---- */
+
+@media (max-width: 900px) {
+  .focus-panel { inset: 14px; }
+
+  .focus-current b { font-size: 32px; }
+  .focus-current em { display: none; }
+  .focus-close { margin-left: 12px; }
+  .focus-close span { display: none; }
+
+  .focus-stats { gap: 8px 18px; }
+  .fs-block b { font-size: 14px; }
+  .fs-chips { margin-left: 0; width: 100%; }
+}
+
+@media (max-width: 560px) {
+  .focus-panel { inset: 8px; }
+  .focus-hd { padding: 14px 16px 6px; gap: 10px; }
+  .focus-stats, .focus-comp { padding-left: 16px; padding-right: 16px; margin-left: 0; margin-right: 0; }
+  .focus-comp { margin: 0 16px 8px; }
+  .focus-chart-wrap { margin: 0 8px; }
+  .focus-ft { padding: 8px 16px 12px; }
+}

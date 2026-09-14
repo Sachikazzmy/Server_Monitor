@@ -1,0 +1,60 @@
+/* ============================================================
+ * tokens.css — Server Monitor 设计令牌
+ *
+ * 视觉语言：「暗色基底上的信号」。
+ *   - 基底：近黑石墨色 + 极淡点阵网格，安静、工业、精密；
+ *   - 信号：每类指标一个语义色相（CPU=琥珀 / Memory=青绿 / Load=钢蓝），
+ *     系列=同色相的明度层级；灰=空闲/闲置（无信号）；
+ *   - 状态色复用语义色相：绿=正常、琥珀=注意、珊瑚红=异常。
+ * ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- 基底（substrate） ---- */
+  --bg: #0a0d11;
+  --panel: #0f1318;
+  --panel-2: #131920;
+  --panel-hover: #12181f;
+  --line: #1c232d;
+  --line-2: #27313d;
+  --grid: rgba(255, 255, 255, 0.04);
+
+  /* ---- 文字 ---- */
+  --t-hi: #e6ebf1;
+  --t-mid: #94a0ad;
+  --t-low: #5d6874;
+  --t-faint: #3f4954;
+
+  /* ---- 语义色相：CPU（暖=计算量） ---- */
+  --c-cpu-us: #e8a33d;   /* user：活跃计算 */
+  --c-cpu-sy: #de5f49;   /* system：内核 */
+  --c-cpu-wa: #8ca0b5;   /* io wait：等待（冷却的灰蓝） */
+  --c-cpu-id: #39434f;   /* idle：静默基底 */
+
+  /* ---- 语义色相：Memory（青绿=水位） ---- */
+  --c-mem-used: #3bb89b;
+  --c-mem-wired: #2e8fa0;
+  --c-mem-comp: #4e7482;
+  --c-mem-free: #46505c;
+
+  /* ---- 语义色相：Load（钢蓝=压力回声，1m 最亮、15m 最暗） ---- */
+  --c-load-l1: #a9c4e4;
+  --c-load-l5: #6e8db4;
+  --c-load-l15: #45597a;
+
+  /* ---- 状态 ---- */
+  --c-ok: #4bc97e;
+  --c-warn: #e8a33d;
+  --c-crit: #de5f49;
+
+  /* ---- 字体 ---- */
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+
+  /* ---- 几何 ---- */
+  --r-panel: 6px;
+  --r-ctl: 4px;
+  --gap: 14px;
+  --page-max: 1440px;
+}
